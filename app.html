@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClearDay — Your Daily Check-In</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #0A0A0A;
+    --paper: #F5F0E8;
+    --offwhite: #FEFCF8;
+    --accent: #E8421A;
+    --accent2: #1A4FE8;
+    --gold: #C8A84B;
+    --mid: #7A7060;
+    --rule: rgba(10,10,10,0.1);
+    --surface: #F0EBE0;
+    --dark: #111108;
+    --border: rgba(10,10,10,0.12);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Libre Baskerville', serif;
+    min-height: 100vh;
+    display:flex; flex-direction:column;
+    cursor: default;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--ink);
+    padding: 0.8rem 2rem;
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom: 2px solid rgba(255,255,255,0.1);
+    position:sticky; top:0; z-index:50;
+  }
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.5rem; letter-spacing: 0.06em;
+    color: var(--paper); text-decoration:none;
+  }
+  .logo sup {
+    font-family:'DM Mono',monospace;
+    font-size:0.45rem; color: var(--gold);
+    vertical-align:super; letter-spacing:0.1em;
+  }
+  .topbar-center {
+    font-family:'DM Mono',monospace;
+    font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase;
+    color: rgba(245,240,232,0.4);
+  }
+  .topbar-center span { color: var(--gold); }
+  .topbar-right { display:flex; gap:1rem; align-items:center; }
+  .trial-badge {
+    font-family:'DM Mono',monospace;
+    font-size:0.65rem; letter-spacing:0.08em; text-transform:uppercase;
+    background: rgba(200,168,75,0.15); color: var(--gold);
+    border: 1px solid rgba(200,168,75,0.3);
+    padding:0.25rem 0.7rem;
+  }
+  .avatar {
+    width:30px; height:30px;
+    background: var(--accent);
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Bebas Neue',sans-serif; font-size:1rem;
+    color: white; cursor:pointer;
+  }
+
+  /* LAYOUT */
+  .app {
+    display:grid;
+    grid-template-columns: 220px 1fr 280px;
+    flex:1; min-height:calc(100vh - 50px);
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    background: var(--offwhite);
+    border-right: 2px solid var(--ink);
+    padding: 1.5rem 0;
+    overflow-y:auto;
+  }
+  .sidebar-section {
+    padding: 0 1.2rem;
+    margin-bottom: 0.3rem;
+  }
+  .sidebar-label {
+    font-family:'DM Mono',monospace;
+    font-size:0.6rem; letter-spacing:0.12em; text-transform:uppercase;
+    color: var(--mid); padding: 1rem 1.2rem 0.4rem;
+    border-top: 1px solid var(--rule);
+    margin-top: 0.5rem;
+  }
+  .sidebar-label:first-child { border-top:none; margin-top:0; }
+  .nav-item {
+    display:flex; align-items:center; gap:0.7rem;
+    padding: 0.55rem 0.8rem;
+    font-family:'DM Mono',monospace;
+    font-size:0.75rem; letter-spacing:0.05em;
+    color: var(--mid); cursor:pointer;
+    transition: background 0.12s, color 0.12s;
+    border-left: 2px solid transparent;
+  }
+  .nav-item:hover { color: var(--ink); background: var(--surface); }
+  .nav-item.active {
+    color: var(--ink); font-weight:500;
+    border-left-color: var(--accent);
+    background: rgba(232,66,26,0.06);
+  }
+  .nav-badge {
+    margin-left:auto;
+    background: var(--accent); color:white;
+    font-size:0.6rem; padding:0.1rem 0.45rem;
+    font-weight:500;
+  }
+  .streak-widget {
+    margin: 1.5rem 1.2rem;
+    background: var(--ink);
+    padding: 1rem;
+    position:relative; overflow:hidden;
+  }
+  .streak-widget::before {
+    content:'🔥';
+    position:absolute; right:-0.5rem; top:-0.5rem;
+    font-size:4rem; opacity:0.1;
+  }
+  .streak-num {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:3rem; color: var(--gold); line-height:1;
+  }
+  .streak-text {
+    font-family:'DM Mono',monospace;
+    font-size:0.62rem; letter-spacing:0.08em; text-transform:uppercase;
+    color: rgba(245,240,232,0.4); margin-top:0.2rem;
+  }
+  .streak-dots { display:flex; gap:0.25rem; margin-top: 0.7rem; }
+  .sdot {
+    width:10px; height:10px; border-radius:50%;
+    background: rgba(255,255,255,0.1);
+  }
+  .sdot.on { background: var(--gold); }
+  .sdot.today { background: var(--accent); }
+
+  /* MAIN */
+  .main { overflow-y:auto; }
+
+  /* CHECKIN SECTION */
+  .checkin-zone {
+    padding: 2.5rem 2.5rem 0;
+  }
+  .checkin-header {
+    display:flex; justify-content:space-between; align-items:flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .checkin-title {
+    font-family:'Bebas Neue',sans-serif;
+    font-size: 2.5rem; letter-spacing: 0.03em;
+    color: var(--ink); line-height:1;
+  }
+  .checkin-sub {
+    font-family:'DM Mono',monospace;
+    font-size:0.7rem; letter-spacing:0.08em; text-transform:uppercase;
+    color: var(--mid); margin-top:0.4rem;
+  }
+  .time-display {
+    font-family:'DM Mono',monospace;
+    font-size:0.7rem; letter-spacing:0.06em;
+    color: var(--mid); text-align:right;
+  }
+  .time-display .time-big {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:2rem; color: var(--ink);
+    line-height:1; letter-spacing:0.04em;
+  }
+
+  /* CARD */
+  .checkin-card {
+    background: var(--offwhite);
+    border: 2px solid var(--ink);
+    margin-bottom: 1.5rem;
+    animation: cardIn 0.5s ease both;
+  }
+  .card-header {
+    background: var(--ink); color: var(--paper);
+    padding: 0.7rem 1.2rem;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .card-label {
+    font-family:'DM Mono',monospace;
+    font-size:0.68rem; letter-spacing:0.1em; text-transform:uppercase;
+  }
+  .card-num {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:1.1rem; color: rgba(245,240,232,0.4);
+  }
+  .card-body { padding: 1.5rem; }
+  .card-question {
+    font-style:italic; font-size:1.1rem; line-height:1.65;
+    color: var(--ink); margin-bottom:1.2rem;
+    border-left: 3px solid var(--accent); padding-left:1rem;
+  }
+  textarea {
+    width:100%; border: 1px solid var(--border);
+    background: var(--paper); color: var(--ink);
+    font-family:'Libre Baskerville', serif;
+    font-size:0.9rem; line-height:1.7;
+    padding: 0.8rem; resize:vertical; min-height:90px;
+    outline:none; transition: border-color 0.2s;
+  }
+  textarea:focus { border-color: var(--ink); }
+  textarea::placeholder { color: var(--mid); font-style:italic; }
+
+  /* MOOD SELECTOR */
+  .mood-row {
+    display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.8rem;
+  }
+  .mood-btn {
+    border: 1px solid var(--border);
+    background: var(--paper); color: var(--mid);
+    font-family:'DM Mono',monospace;
+    font-size:0.72rem; letter-spacing:0.05em; text-transform:uppercase;
+    padding: 0.4rem 0.8rem; cursor:pointer;
+    transition: all 0.12s;
+  }
+  .mood-btn:hover, .mood-btn.selected {
+    background: var(--ink); color: var(--paper);
+    border-color: var(--ink);
+  }
+  .mood-btn.selected { border-color: var(--accent); background: var(--accent); }
+
+  /* FOCUS LIST */
+  .focus-list { margin-top: 0.8rem; }
+  .focus-row {
+    display:flex; gap: 0.6rem; align-items:center;
+    padding: 0.5rem 0; border-bottom: 1px solid var(--rule);
+  }
+  .focus-check {
+    width:18px; height:18px; border:2px solid var(--ink);
+    border-radius:2px; cursor:pointer; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.75rem; transition: background 0.1s;
+  }
+  .focus-check.done { background: var(--ink); color: var(--paper); }
+  .focus-input {
+    flex:1; border:none; background:transparent;
+    font-family:'Libre Baskerville',serif;
+    font-size:0.9rem; color: var(--ink);
+    outline:none; padding:0;
+  }
+  .focus-input::placeholder { color: var(--mid); font-style:italic; }
+  .focus-input.done-text { text-decoration:line-through; color: var(--mid); }
+  .add-focus {
+    font-family:'DM Mono',monospace;
+    font-size:0.68rem; letter-spacing:0.08em; text-transform:uppercase;
+    color: var(--mid); cursor:pointer; padding: 0.5rem 0;
+    display:flex; align-items:center; gap:0.4rem;
+    transition: color 0.15s;
+  }
+  .add-focus:hover { color: var(--accent); }
+
+  /* SUBMIT BTN */
+  .submit-row {
+    padding: 0 2.5rem 2.5rem;
+    display:flex; gap:1rem; align-items:center;
+  }
+  .btn-submit {
+    background: var(--ink); color: var(--paper);
+    font-family:'DM Mono',monospace;
+    font-size:0.78rem; letter-spacing:0.1em; text-transform:uppercase;
+    padding: 0.9rem 2rem; border:2px solid var(--ink);
+    cursor:pointer; transition: background 0.15s, transform 0.15s;
+  }
+  .btn-submit:hover { background: var(--accent); border-color: var(--accent); transform:translate(-2px,-2px); }
+  .save-note {
+    font-family:'DM Mono',monospace;
+    font-size:0.65rem; letter-spacing:0.07em; text-transform:uppercase;
+    color: var(--mid);
+  }
+
+  /* SUCCESS STATE */
+  .success-banner {
+    margin: 0 2.5rem 1.5rem;
+    background: var(--ink); color: var(--paper);
+    padding: 1.2rem 1.5rem;
+    display:none; align-items:center; gap:1rem;
+    animation: cardIn 0.4s ease;
+  }
+  .success-banner.show { display:flex; }
+  .success-icon { font-size:1.5rem; }
+  .success-text { font-size:0.88rem; line-height:1.5; }
+  .success-text strong { font-family:'Bebas Neue',sans-serif; font-size:1.2rem; letter-spacing:0.03em; display:block; }
+
+  /* DIVIDER */
+  .section-divider {
+    margin: 0 2.5rem;
+    border:none; border-top: 2px solid var(--ink);
+    margin-bottom: 1.5rem;
+  }
+
+  /* RECENT LOG */
+  .log-section { padding: 0 2.5rem 2.5rem; }
+  .log-header {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:1.8rem; letter-spacing:0.03em;
+    color: var(--ink); margin-bottom:1.2rem;
+  }
+  .log-entry {
+    border: 1px solid var(--border);
+    margin-bottom: 0.8rem;
+    background: var(--offwhite);
+    transition: border-color 0.2s;
+    cursor:pointer;
+  }
+  .log-entry:hover { border-color: var(--ink); }
+  .log-entry-header {
+    background: var(--surface);
+    padding: 0.5rem 1rem;
+    display:flex; justify-content:space-between; align-items:center;
+    border-bottom: 1px solid var(--border);
+  }
+  .log-date {
+    font-family:'DM Mono',monospace;
+    font-size:0.65rem; letter-spacing:0.08em; text-transform:uppercase; color: var(--mid);
+  }
+  .log-mood {
+    font-family:'DM Mono',monospace;
+    font-size:0.62rem; text-transform:uppercase; letter-spacing:0.07em;
+    color: var(--accent);
+  }
+  .log-body {
+    padding: 0.8rem 1rem;
+    font-style:italic; font-size:0.85rem; line-height:1.6; color: var(--mid);
+  }
+  .log-tags { padding: 0 1rem 0.8rem; display:flex; gap:0.4rem; }
+  .log-tag {
+    font-family:'DM Mono',monospace;
+    font-size:0.6rem; text-transform:uppercase; letter-spacing:0.06em;
+    border: 1px solid var(--border); color: var(--mid);
+    padding: 0.15rem 0.5rem;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    background: var(--offwhite);
+    border-left: 2px solid var(--ink);
+    overflow-y:auto;
+  }
+  .rp-section {
+    padding: 1.5rem;
+    border-bottom: 2px solid var(--ink);
+  }
+  .rp-title {
+    font-family:'DM Mono',monospace;
+    font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase;
+    color: var(--mid); margin-bottom: 1rem;
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  .rp-title span { color: var(--accent); font-size:0.6rem; }
+
+  /* COACH MESSAGE */
+  .coach-card {
+    background: var(--ink);
+    padding: 1.5rem;
+    position:relative; overflow:hidden;
+  }
+  .coach-card::before {
+    content:'"';
+    font-family:'Bebas Neue',sans-serif;
+    font-size:8rem; color: rgba(255,255,255,0.04);
+    position:absolute; top:-1rem; left:0.5rem;
+    line-height:1; pointer-events:none;
+  }
+  .coach-msg-text {
+    font-style:italic; font-size:0.88rem; line-height:1.7;
+    color: rgba(245,240,232,0.8);
+    margin-bottom: 1rem; position:relative;
+  }
+  .coach-sig {
+    font-family:'DM Mono',monospace;
+    font-size:0.62rem; letter-spacing:0.08em; text-transform:uppercase;
+    color: var(--gold); display:flex; align-items:center; gap:0.4rem;
+  }
+  .coach-sig::before { content:'—'; }
+
+  /* STATS */
+  .stats-row { display:grid; grid-template-columns:1fr 1fr; gap:0; }
+  .stat-box {
+    padding: 1rem;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    text-align:center;
+  }
+  .stat-box:nth-child(even){ border-right:none; }
+  .stat-box:nth-child(n+3){ border-bottom:none; }
+  .sb-num {
+    font-family:'Bebas Neue',sans-serif;
+    font-size:2.5rem; color: var(--ink); line-height:1;
+  }
+  .sb-label {
+    font-family:'DM Mono',monospace;
+    font-size:0.6rem; letter-spacing:0.08em; text-transform:uppercase;
+    color: var(--mid); margin-top:0.2rem;
+  }
+
+  /* MOOD CHART */
+  .mood-chart { display:flex; align-items:flex-end; gap:0.3rem; height:50px; margin-top:0.8rem; }
+  .mood-bar {
+    flex:1;
+    background: var(--surface);
+    border-top: 2px solid var(--border);
+    position:relative; cursor:pointer;
+    transition: background 0.2s;
+  }
+  .mood-bar:hover { background: var(--accent); }
+  .mood-bar.high { background: var(--ink); }
+  .mood-bar.med { background: var(--mid); }
+  .mood-label {
+    font-family:'DM Mono',monospace;
+    font-size:0.55rem; text-align:center;
+    color: var(--mid); margin-top:0.2rem;
+  }
+
+  /* QUICK ASK */
+  .quick-ask { padding: 1.5rem; }
+  .qa-label {
+    font-family:'DM Mono',monospace;
+    font-size:0.65rem; letter-spacing:0.1em; text-transform:uppercase;
+    color: var(--mid); margin-bottom:0.8rem;
+  }
+  .chat-scroll { max-height:200px; overflow-y:auto; margin-bottom:0.8rem; }
+  .cm {
+    padding: 0.6rem 0.8rem; margin-bottom:0.5rem;
+    font-size:0.82rem; line-height:1.55;
+    border-left: 2px solid transparent;
+  }
+  .cm-coach {
+    border-left-color: var(--gold);
+    color: var(--mid);
+    background: var(--surface);
+  }
+  .cm-user {
+    border-left-color: var(--accent);
+    color: var(--ink);
+    font-style:italic;
+  }
+  .qa-row { display:flex; gap:0.5rem; }
+  .qa-input {
+    flex:1; border: 1px solid var(--border);
+    background: var(--paper); color: var(--ink);
+    font-family:'Libre Baskerville',serif;
+    font-size:0.82rem; padding:0.5rem 0.7rem; outline:none;
+    transition: border-color 0.2s;
+  }
+  .qa-input:focus { border-color: var(--ink); }
+  .qa-input::placeholder { color: var(--mid); font-style:italic; }
+  .qa-send {
+    background: var(--ink); color: var(--paper);
+    font-family:'DM Mono',monospace;
+    font-size:0.72rem; letter-spacing:0.08em; text-transform:uppercase;
+    padding: 0.5rem 0.9rem; border: none; cursor:pointer;
+    transition: background 0.15s;
+  }
+  .qa-send:hover { background: var(--accent); }
+
+  @keyframes cardIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:none; } }
+
+  @media(max-width:900px){
+    .app { grid-template-columns:1fr; }
+    .sidebar,.right-panel { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <a href="clearday-landing.html" class="logo">ClearDay<sup>™</sup></a>
+  <div class="topbar-center">Wednesday, <span>May 20, 2026</span> · Day 7 of Free Trial</div>
+  <div class="topbar-right">
+    <span class="trial-badge">7-Day Trial · 0 Days Left</span>
+    <div class="avatar">J</div>
+  </div>
+</div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-label">Today</div>
+    <div class="sidebar-section">
+      <div class="nav-item active">☀ Morning Check-In <span class="nav-badge">Due</span></div>
+      <div class="nav-item">🌙 Evening Reflection</div>
+    </div>
+    <div class="sidebar-label">Review</div>
+    <div class="sidebar-section">
+      <div class="nav-item">📋 My Journal</div>
+      <div class="nav-item">📊 Weekly Report</div>
+      <div class="nav-item">📈 Trends</div>
+    </div>
+    <div class="sidebar-label">Coach</div>
+    <div class="sidebar-section">
+      <div class="nav-item">💬 Ask Coach</div>
+      <div class="nav-item">🎯 My Goals</div>
+    </div>
+    <div class="sidebar-label">Account</div>
+    <div class="sidebar-section">
+      <div class="nav-item">⚙ Settings</div>
+      <div class="nav-item">💳 Subscribe — $9/mo</div>
+    </div>
+
+    <div class="streak-widget">
+      <div class="streak-num" id="streakNum">7</div>
+      <div class="streak-text">Day Streak 🔥</div>
+      <div class="streak-dots" id="streakDots"></div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="checkin-zone">
+      <div class="checkin-header">
+        <div>
+          <div class="checkin-title">MORNING CHECK-IN</div>
+          <div class="checkin-sub">Wednesday · May 20, 2026 · Take 2 minutes. Set your day.</div>
+        </div>
+        <div class="time-display">
+          <div class="time-big" id="clock">--:--</div>
+          <div>your local time</div>
+        </div>
+      </div>
+
+      <!-- CARD 1: MOOD -->
+      <div class="checkin-card" id="card1">
+        <div class="card-header">
+          <span class="card-label">Question 1 of 3 · Mood</span>
+          <span class="card-num">01</span>
+        </div>
+        <div class="card-body">
+          <p class="card-question">"How are you actually feeling right now — not how you think you should feel?"</p>
+          <div class="mood-row" id="moodRow">
+            <button class="mood-btn" onclick="selectMood(this,'Energized')">⚡ Energized</button>
+            <button class="mood-btn" onclick="selectMood(this,'Focused')">🎯 Focused</button>
+            <button class="mood-btn" onclick="selectMood(this,'Calm')">😌 Calm</button>
+            <button class="mood-btn" onclick="selectMood(this,'Anxious')">😟 Anxious</button>
+            <button class="mood-btn" onclick="selectMood(this,'Tired')">😴 Tired</button>
+            <button class="mood-btn" onclick="selectMood(this,'Overwhelmed')">🌀 Overwhelmed</button>
+            <button class="mood-btn" onclick="selectMood(this,'Motivated')">🔥 Motivated</button>
+            <button class="mood-btn" onclick="selectMood(this,'Meh')">😐 Meh</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: FOCUS -->
+      <div class="checkin-card" id="card2">
+        <div class="card-header">
+          <span class="card-label">Question 2 of 3 · Priorities</span>
+          <span class="card-num">02</span>
+        </div>
+        <div class="card-body">
+          <p class="card-question">"What are your 1–3 non-negotiable things for today? If you did only these, today would be a win."</p>
+          <div class="focus-list" id="focusList">
+            <div class="focus-row">
+              <div class="focus-check" onclick="toggleCheck(this)"></div>
+              <input class="focus-input" placeholder="Your most important task today...">
+            </div>
+            <div class="focus-row">
+              <div class="focus-check" onclick="toggleCheck(this)"></div>
+              <input class="focus-input" placeholder="Second priority (optional)...">
+            </div>
+            <div class="focus-row">
+              <div class="focus-check" onclick="toggleCheck(this)"></div>
+              <input class="focus-input" placeholder="Third priority (optional)...">
+            </div>
+          </div>
+          <div class="add-focus" onclick="addFocusRow()">+ Add another</div>
+        </div>
+      </div>
+
+      <!-- CARD 3: BLOCKERS -->
+      <div class="checkin-card" id="card3">
+        <div class="card-header">
+          <span class="card-label">Question 3 of 3 · Blockers</span>
+          <span class="card-num">03</span>
+        </div>
+        <div class="card-body">
+          <p class="card-question">"Is there anything — a fear, a task you're avoiding, a conversation you're dreading — that might get in your way today?"</p>
+          <textarea placeholder="Be honest. Even if it's embarrassing. Especially if it's embarrassing."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUCCESS BANNER -->
+    <div class="success-banner" id="successBanner">
+      <div class="success-icon">✓</div>
+      <div class="success-text">
+        <strong>CHECK-IN COMPLETE</strong>
+        Your coach has read your morning intentions. See your coaching message on the right.
+      </div>
+    </div>
+
+    <!-- SUBMIT -->
+    <div class="submit-row" id="submitRow">
+      <button class="btn-submit" onclick="submitCheckin()">Submit Morning Check-In →</button>
+      <span class="save-note">Saved privately · Only you can see this</span>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- RECENT LOG -->
+    <div class="log-section">
+      <div class="log-header">RECENT ENTRIES</div>
+
+      <div class="log-entry">
+        <div class="log-entry-header">
+          <span class="log-date">Tuesday, May 19 · Morning</span>
+          <span class="log-mood">Mood: Focused</span>
+        </div>
+        <div class="log-body">"Finish the quarterly slides before 2pm. Call Mum. Don't open Twitter before noon."</div>
+        <div class="log-tags">
+          <span class="log-tag">2/3 Complete</span>
+          <span class="log-tag">Streak: 6</span>
+        </div>
+      </div>
+      <div class="log-entry">
+        <div class="log-entry-header">
+          <span class="log-date">Monday, May 18 · Evening</span>
+          <span class="log-mood">Mood: Tired</span>
+        </div>
+        <div class="log-body">"Got the main thing done. Lost an hour to Slack. Tomorrow I'm blocking the morning."</div>
+        <div class="log-tags">
+          <span class="log-tag">Reflected</span>
+          <span class="log-tag">Streak: 5</span>
+        </div>
+      </div>
+      <div class="log-entry">
+        <div class="log-entry-header">
+          <span class="log-date">Monday, May 18 · Morning</span>
+          <span class="log-mood">Mood: Anxious</span>
+        </div>
+        <div class="log-body">"Big week. Don't spiral. One thing: the proposal. That's it."</div>
+        <div class="log-tags">
+          <span class="log-tag">3/3 Complete</span>
+          <span class="log-tag">Streak: 5</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+    <!-- COACH MESSAGE -->
+    <div class="rp-section" style="padding:0;">
+      <div class="coach-card" id="coachCard">
+        <div class="rp-title" style="padding:1rem 1.5rem 0;color:rgba(245,240,232,0.35);">
+          Your Coach <span style="color:var(--gold)">· Now</span>
+        </div>
+        <div class="coach-msg-text" style="padding:0.5rem 1.5rem 0.5rem;">
+          Day 7 of your trial — and you've checked in every single day. That's not luck. Most people quit by day 3. The fact that you're still here means something about who you're becoming.<br><br>What will you do with that?
+        </div>
+        <div class="coach-sig" style="padding:0 1.5rem 1.5rem;">Your ClearDay Coach, 7:04am</div>
+      </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="rp-section">
+      <div class="rp-title">This Week <span>May 14–20</span></div>
+      <div class="stats-row">
+        <div class="stat-box">
+          <div class="sb-num">7</div>
+          <div class="sb-label">Check-ins</div>
+        </div>
+        <div class="stat-box">
+          <div class="sb-num">83%</div>
+          <div class="sb-label">Completion</div>
+        </div>
+        <div class="stat-box">
+          <div class="sb-num">4.2</div>
+          <div class="sb-label">Avg Mood</div>
+        </div>
+        <div class="stat-box">
+          <div class="sb-num">7🔥</div>
+          <div class="sb-label">Streak</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MOOD CHART -->
+    <div class="rp-section">
+      <div class="rp-title">Mood This Week</div>
+      <div class="mood-chart" id="moodChart"></div>
+      <div style="display:flex;gap:0.3rem;margin-top:0.25rem;">
+        <!-- labels added by JS -->
+      </div>
+    </div>
+
+    <!-- QUICK ASK COACH -->
+    <div class="quick-ask">
+      <div class="qa-label">Ask Your Coach Anything</div>
+      <div class="chat-scroll" id="chatScroll">
+        <div class="cm cm-coach">I'm here. What's on your mind today?</div>
+      </div>
+      <div class="qa-row">
+        <input class="qa-input" id="qaInput" placeholder="Ask anything..." onkeydown="if(event.key==='Enter')sendQA()">
+        <button class="qa-send" onclick="sendQA()">→</button>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<script>
+  // CLOCK
+  function updateClock(){
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2,'0');
+    const m = String(now.getMinutes()).padStart(2,'0');
+    document.getElementById('clock').textContent = h+':'+m;
+  }
+  updateClock(); setInterval(updateClock, 30000);
+
+  // STREAK DOTS
+  const dots = document.getElementById('streakDots');
+  for(let i=0;i<7;i++){
+    const d = document.createElement('div');
+    d.className = 'sdot' + (i<6?' on': ' today');
+    dots.appendChild(d);
+  }
+
+  // MOOD
+  let selectedMood = '';
+  function selectMood(btn, mood){
+    document.querySelectorAll('.mood-btn').forEach(b=>b.classList.remove('selected'));
+    btn.classList.add('selected');
+    selectedMood = mood;
+  }
+
+  // FOCUS CHECKS
+  function toggleCheck(el){
+    el.classList.toggle('done');
+    el.textContent = el.classList.contains('done') ? '✓' : '';
+    const inp = el.nextElementSibling;
+    inp && inp.classList.toggle('done-text', el.classList.contains('done'));
+  }
+
+  function addFocusRow(){
+    const list = document.getElementById('focusList');
+    const row = document.createElement('div');
+    row.className = 'focus-row';
+    row.innerHTML = `<div class="focus-check" onclick="toggleCheck(this)"></div><input class="focus-input" placeholder="Another priority...">`;
+    list.appendChild(row);
+  }
+
+  // SUBMIT
+  function submitCheckin(){
+    document.getElementById('submitRow').style.display = 'none';
+    document.getElementById('successBanner').classList.add('show');
+    document.getElementById('streakNum').textContent = '7';
+
+    // Update coach message based on mood
+    const msgs = {
+      'Anxious': "Anxiety means you care. That's not a weakness — it's data. Name the one thing that's making you most anxious right now, and make THAT your first priority. Shrink it to one small action.",
+      'Tired': "Tired is okay. Do less, but do the right less. When energy is low, ruthless prioritization is your superpower. What's the ONE thing that absolutely must happen today?",
+      'Energized': "Good. Channel it carefully. High energy can scatter into busywork just as easily as it can build something great. Pick your most important target and go deep before going wide.",
+      'Overwhelmed': "Stop. Breathe. Pick ONE thing. Not three. One. The world will not end if the other things wait. Your job right now is to find the one thread that, if you pulled it, everything else would loosen.",
+      'Focused': "You're already there mentally. Don't waste it. Close the tabs, silence the notifications, and let yourself go deep for the first two hours.",
+      'Motivated': "This is rare fuel. Use it on something that actually matters — not email, not logistics. What's the bold thing you've been putting off?",
+      'Calm': "Calm is clarity. You're in a good state to make decisions, not just react to them. What decision have you been avoiding that your calm mind could handle today?",
+      'Meh': "Meh is where most days start. The question isn't how to feel better — it's how to act your way into better. Do one small thing on your list. Motion creates emotion."
+    };
+    const msg = msgs[selectedMood] || "Check-in received. Your intentions are set. Now: close this app and go do the first thing on your list. The work is the answer.";
+    document.querySelector('.coach-msg-text').innerHTML = msg;
+    document.querySelector('.coach-sig').textContent = '— Your ClearDay Coach, ' + document.getElementById('clock').textContent + 'am';
+  }
+
+  // MOOD CHART
+  const moodData = [
+    {day:'Mo',h:55,type:'med'},
+    {day:'Tu',h:80,type:'high'},
+    {day:'We',h:40,type:''},
+    {day:'Th',h:70,type:'high'},
+    {day:'Fr',h:60,type:'med'},
+    {day:'Sa',h:85,type:'high'},
+    {day:'Su',h:50,type:'med'}
+  ];
+  const chart = document.getElementById('moodChart');
+  moodData.forEach(d=>{
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'flex:1;display:flex;flex-direction:column;align-items:center;';
+    const bar = document.createElement('div');
+    bar.className = 'mood-bar '+d.type;
+    bar.style.height = d.h+'%';
+    const lbl = document.createElement('div');
+    lbl.className = 'mood-label';
+    lbl.textContent = d.day;
+    wrap.appendChild(bar);
+    wrap.appendChild(lbl);
+    chart.appendChild(wrap);
+  });
+
+  // CHAT
+  const coachReplies = [
+    "That's a good question to sit with. When you imagine the version of you who already has this handled — what did they do differently this morning?",
+    "I hear you. Let's not overcomplicate it. What's the smallest possible first step? Just that. Nothing else.",
+    "Resistance usually means you care. The thing you're avoiding is often the thing that matters most. Can you give it just 15 minutes?",
+    "You've been consistent for 7 days. That tells me more about your character than any single answer. Trust the process you've already started.",
+    "Write it down. Getting it out of your head and onto the screen removes 40% of its power over you. What do you see when you look at it plainly?",
+    "That's real. Acknowledge it — then ask: what would the 'good enough' version of today look like, given where you're starting from?",
+  ];
+  let replyIdx = 0;
+  function sendQA(){
+    const inp = document.getElementById('qaInput');
+    const val = inp.value.trim();
+    if(!val) return;
+    const scroll = document.getElementById('chatScroll');
+    const um = document.createElement('div');
+    um.className = 'cm cm-user';
+    um.textContent = val;
+    scroll.appendChild(um);
+    inp.value='';
+    setTimeout(()=>{
+      const am = document.createElement('div');
+      am.className='cm cm-coach';
+      am.textContent = coachReplies[replyIdx % coachReplies.length];
+      replyIdx++;
+      scroll.appendChild(am);
+      scroll.scrollTop = scroll.scrollHeight;
+    }, 800);
+    scroll.scrollTop = scroll.scrollHeight;
+  }
+</script>
+</body>
+</html>
